@@ -7,13 +7,11 @@ keystore_locations = [
     "/etc/credentials/credentials.ini",
 ]
 
-filename = None
-for location in keystore_locations:
-    if os.path.isfile(location):
-        filename = location
-        break
+valid_keystore_locations = [loc for loc in keystore_locations if os.path.isfile(loc)]
+
 credentials = SafeConfigParser()
-if filename:
-    credentials.read(filename)
+if len(valid_keystore_locations) > 0:
+    # The first valid keystore location is the highest priority
+    credentials.read(valid_keystore_locations[0])
 else:
     print "Couldn't locate any credentials"
