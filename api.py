@@ -6,7 +6,7 @@ import HTMLParser
 from BeautifulSoup import BeautifulSoup
 import urllib2
 import re
-import credentials
+from credentials import *
 import MySQLdb
 
 app = Flask(__name__)
@@ -34,7 +34,7 @@ def title():
         else:
             return "No URL specified"
 
-if credentials.credentials.has_section('mysql'):
+if credentials.has_section('mysql'):
     @app.route("/url/store", methods=['POST', 'GET'])
     def api_urlstore():
         """Endpoint for storing URLS seen on IRC"""
@@ -57,10 +57,10 @@ if credentials.credentials.has_section('mysql'):
                 return "Must supply URL, channel and nickname"
 
 def mysql_store_url(url, channel, nickname):
-    hostname = credentials.credentials.get("mysql", "hostname", None)
-    database = credentials.credentials.get("mysql", "database", None)
-    username = credentials.credentials.get("mysql", "username", None)
-    password = credentials.credentials.get("mysql", "password", None)
+    hostname = credentials.get("mysql", "hostname", None)
+    database = credentials.get("mysql", "database", None)
+    username = credentials.get("mysql", "username", None)
+    password = credentials.get("mysql", "password", None)
     print "uh %s %s %s" % (url, channel, nickname)
 
     try:
