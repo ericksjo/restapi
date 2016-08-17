@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from flask import Flask, request
-import lxml.html
+from lxml.html import fromstring
 import json
 import HTMLParser
-from BeautifulSoup import BeautifulSoup
 import urllib2
+import requests
 import re
 from credentials import *
 import MySQLdb
@@ -57,11 +57,11 @@ if credentials.has_section('mysql'):
                 return "Must supply URL, channel and nickname"
 
 def mysql_store_url(url, channel, nickname):
+    """Stores URLs to a URL logging database. These URLs are qualified by channel and nickname because the typical source is from an IRC bot"""
     hostname = credentials.get("mysql", "hostname", None)
     database = credentials.get("mysql", "database", None)
     username = credentials.get("mysql", "username", None)
     password = credentials.get("mysql", "password", None)
-    print "uh %s %s %s" % (url, channel, nickname)
 
     try:
         db = MySQLdb.connect(host=hostname, user=username, passwd=password, db=database)
@@ -75,15 +75,14 @@ def mysql_store_url(url, channel, nickname):
         return "Couldn't add to the database"
 
 def get_url_title(url):
-    """Gets the string value of the first title tag from the supplied URL and returns it. If BeautifulSoup fails to parse the html document, it will default to regular expression parsing. If no title can be found, it simply returns a blank string"""
+    """Gets the string value of the first title tag from the supplied URL and returns it. If LXML fails to parse the html document, it will default to regular expression parsing. If no title can be found, it simply returns a blank string"""
     try:
-        response = urllib2.urlopen(url)
-        url_data = response.read()
+        response = requests.get(url)
     except:
         return "Couldn't connect to url %s" % url
     try:
-        soup = BeautifulSoup(url_data)
-        title = soup.title.string
+        tree = fromstring(response.content)
+        title = tree.findtext('.//title')
     except:
         mo = re.search(r'<title>(.*)</title>', url_data)
         if mo:
