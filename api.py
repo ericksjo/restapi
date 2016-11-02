@@ -52,15 +52,12 @@ def movie():
         year = request.args.get('year',None)
     if title == None:
         return "Must supply a title"
-    print "Title is: %s and year is %s" % (title, year)
     # Do the search first, ignore pagination for now
     url = '%s?s=%s&r=json' % (omdb_url, urllib2.quote(title))
-    print url
     try:
         resp = requests.get(url)
     except Exception as e:
         return "Couldn't connect to omdb: %s" % e
-    print resp.text
     if resp:
         data = json.loads(resp.text)
     if data.get('Response','False') == 'True':
