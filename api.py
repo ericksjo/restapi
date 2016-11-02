@@ -53,7 +53,10 @@ def movie():
     if title == None:
         return "Must supply a title"
     # Do the search first, ignore pagination for now
-    url = '%s?s=%s&r=json' % (omdb_url, urllib2.quote(title))
+    if year:
+        url = '%s?s=%s&r=json&y=%s' % (omdb_url, urllib2.quote(title), year)
+    else:
+        url = '%s?s=%s&r=json' % (omdb_url, urllib2.quote(title))
     try:
         resp = requests.get(url)
     except Exception as e:
@@ -64,11 +67,6 @@ def movie():
         return "Status code wasn't 200: %d" % resp.status_code
     if data.get('Response','False') == 'True':
         results = data.get('Search')
-        # Filter responses to match year when available
-        if year:
-            results = [search_result for search_result in results if search_result['Year'] == year]
-        if len(results) == 0:
-            return "No results for title '%s' and year '%s'" % (title,year)
         # Grab specific movie results
         imdb_id = results[0].get('imdbID')
         url = '%s?i=%s&plot=short&r=json&tomatoes=true' % (omdb_url, imdb_id)
@@ -81,7 +79,7 @@ def movie():
         else:
             return "Status code wasn't 200: %d" % resp.status_code
         tomatoImage = movie_data.get('tomatoImage',None)
-        if tomatoImage:
+        if tomatoImage != "N/A":
             if tomatoImage == "rotten":
                 color = "03"
             else:
