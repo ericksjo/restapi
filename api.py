@@ -58,8 +58,10 @@ def movie():
         resp = requests.get(url)
     except Exception as e:
         return "Couldn't connect to omdb: %s" % e
-    if resp:
+    if resp.status_code == 200:
         data = json.loads(resp.text)
+    else:
+        return "Status code wasn't 200: %d" % resp.status_code
     if data.get('Response','False') == 'True':
         results = data.get('Search')
         # Filter responses to match year when available
@@ -74,7 +76,10 @@ def movie():
             resp = requests.get(url)
         except Exception as e:
             return "Couldn't connect to omdb: %s" % e
-        movie_data = json.loads(resp.text)
+        if resp.status_code == 200:
+            movie_data = json.loads(resp.text)
+        else:
+            return "Status code wasn't 200: %d" % resp.status_code
         tomatoImage = movie_data.get('tomatoImage',None)
         if tomatoImage:
             if tomatoImage == "rotten":
