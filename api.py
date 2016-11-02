@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from flask import Flask, request
 from lxml.html import fromstring
 import json
@@ -85,7 +86,8 @@ def movie():
             else:
                 color = "04"
             movie_data['tomatoMeter'] = "\003%s%s%%\003" % (color, movie_data['tomatoMeter'])
-        return "%(Title)s (%(Year)s) - Metascore: %(Metascore)s IMDB: %(imdbRating)s RT: %(tomatoMeter)s - %(Plot)s %(tomatoURL)s" % movie_data
+        blurb =  "%(Title)s (%(Year)s) - Metascore: %(Metascore)s IMDB: %(imdbRating)s RT: %(tomatoMeter)s - %(Plot)s %(tomatoURL)s" % movie_data
+        return blurb.replace(u'–', '-')
     else:
         return data.get('Error','Unknown error')
 
