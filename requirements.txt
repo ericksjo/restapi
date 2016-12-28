@@ -3,3 +3,5 @@ ConfigParser
 lxml
 HTMLParser
 requests
+w3lib
+six
