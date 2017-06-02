@@ -34,62 +34,63 @@ def title():
             return get_url_title(urllib2.unquote(url))
         else:
             return "No URL specified"
+if credentials.has_section('omdb'):
+    @app.route("/movie", methods=['GET', 'POST'])
+    def movie():
+        """Returns a nice movie summary with plot and review scores"""
+        omdb_url = 'http://www.omdbapi.com/'
+        apikey = credentials.get("omdb", "apikey", None)
 
-@app.route("/movie", methods=['GET', 'POST'])
-def movie():
-    """Returns a nice movie summary with plot and review scores"""
-    omdb_url = 'http://www.omdbapi.com/'
-
-    # Check input data
-    if request.method == "POST":
+        # Check input data
+        if request.method == "POST":
+            try:
+                json_data = request.get_json()
+            except:
+                return "Must post json data with title field"
+            title = json_data.get('title',None)
+            year = json_data.get('year',None)
+        else:
+            title = request.args.get('title',None)
+            year = request.args.get('year',None)
+        if title == None:
+            return "Must supply a title"
+        # Do the search first, ignore pagination for now
+        if year:
+            url = '%s?apikey=%s&s=%s&r=json&y=%s' % (omdb_url, apikey, urllib2.quote(title), year)
+        else:
+            url = '%s?apikey=%s&s=%s&r=json' % (omdb_url, apikey, urllib2.quote(title))
         try:
-            json_data = request.get_json()
-        except:
-            return "Must post json data with title field"
-        title = json_data.get('title',None)
-        year = json_data.get('year',None)
-    else:
-        title = request.args.get('title',None)
-        year = request.args.get('year',None)
-    if title == None:
-        return "Must supply a title"
-    # Do the search first, ignore pagination for now
-    if year:
-        url = '%s?s=%s&r=json&y=%s' % (omdb_url, urllib2.quote(title), year)
-    else:
-        url = '%s?s=%s&r=json' % (omdb_url, urllib2.quote(title))
-    try:
-        resp = requests.get(url)
-    except Exception as e:
-        return "Couldn't connect to omdb: %s" % e
-    if resp.status_code == 200:
-        data = json.loads(resp.text)
-    else:
-        return "Status code wasn't 200: %d" % resp.status_code
-    if data.get('Response','False') == 'True':
-        results = data.get('Search')
-        # Grab specific movie results
-        imdb_id = results[0].get('imdbID')
-        url = '%s?i=%s&plot=short&r=json&tomatoes=true' % (omdb_url, imdb_id)
-        try:
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=5)
         except Exception as e:
             return "Couldn't connect to omdb: %s" % e
         if resp.status_code == 200:
-            movie_data = json.loads(resp.text)
+            data = json.loads(resp.text)
         else:
             return "Status code wasn't 200: %d" % resp.status_code
-        tomatoImage = movie_data.get('tomatoImage',None)
-        if tomatoImage != "N/A":
-            if tomatoImage == "rotten":
-                color = "03"
+        if data.get('Response','False') == 'True':
+            results = data.get('Search')
+            # Grab specific movie results
+            imdb_id = results[0].get('imdbID')
+            url = '%s?apikey=%s&i=%s&plot=short&r=json&tomatoes=true' % (omdb_url, apikey, imdb_id)
+            try:
+                resp = requests.get(url, timeout=5)
+            except Exception as e:
+                return "Couldn't connect to omdb: %s" % e
+            if resp.status_code == 200:
+                movie_data = json.loads(resp.text)
             else:
-                color = "04"
-            movie_data['tomatoMeter'] = "\003%s%s%%\003" % (color, movie_data['tomatoMeter'])
-        blurb =  "%(Title)s (%(Year)s) - Metascore: %(Metascore)s IMDB: %(imdbRating)s RT: %(tomatoMeter)s - %(Plot)s %(tomatoURL)s" % movie_data
-        return blurb.replace(u'–', '-')
-    else:
-        return data.get('Error','Unknown error')
+                return "Status code wasn't 200: %d" % resp.status_code
+            tomatoImage = movie_data.get('tomatoImage',None)
+            if tomatoImage != "NA" and tomatoImage != "N/A":
+                if tomatoImage == "rotten":
+                    color = "03"
+                else:
+                    color = "04"
+                movie_data['tomatoMeter'] = "\003%s%s%%\003" % (color, movie_data['tomatoMeter'])
+            blurb =  "%(Title)s (%(Year)s) - Metascore: %(Metascore)s IMDB: %(imdbRating)s RT: %(tomatoMeter)s - %(Plot)s %(tomatoURL)s" % movie_data
+            return blurb.replace(u'–', '-')
+        else:
+            return data.get('Error','Unknown error')
 
 if credentials.has_section('mysql'):
     @app.route("/url/store", methods=['POST', 'GET'])
@@ -137,7 +138,7 @@ def get_url_title(url):
         'User-Agent': """Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36"""
     }
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=5, verify=False)
     except:
         return "Couldn't connect to url %s" % url
     try:
