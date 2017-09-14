@@ -70,7 +70,12 @@ if credentials.has_section('omdb'):
         if data.get('Response','False') == 'True':
             results = data.get('Search')
             # Grab specific movie results
-            imdb_id = results[0].get('imdbID')
+            exact_matches = filter(lambda x: x.get('Title').lower() == title.lower(), results)
+            if len(exact_matches) > 0:
+                imdb_id = exact_matches[0].get('imdbID')
+            else:
+                imdb_id = results[0].get('imdbID')
+
             url = '%s?apikey=%s&i=%s&plot=short&r=json&tomatoes=true' % (omdb_url, apikey, imdb_id)
             try:
                 resp = requests.get(url, timeout=5)
