@@ -45,19 +45,21 @@ if credentials.has_section('twitter'):
         access_token = oauth.Token(key=ACCESS_KEY, secret=ACCESS_SECRET)
         client = oauth.Client(consumer, access_token)
 
-        timeline_endpoint = "https://api.twitter.com/1.1/statuses/show.json?id={id}".format(id=id)
+        timeline_endpoint = "https://api.twitter.com/1.1/statuses/show.json?id={id}&tweet_mode=extended".format(id=id)
         try:
             response, data = client.request(timeline_endpoint)
+            with open('myfile.txt', 'w') as file:
+                file.write(data)
             tweet = json.loads(data)
         except Exception as e:
             return "ERROR: {0}".format(e)
-        text = tweet['text']
+        text = tweet['full_text']
         name = tweet['user']['name']
         verified = "" if tweet['user']['verified'] == False else "✓"
         screen_name = tweet['user']['screen_name']
         timestamp = tweet['created_at']
 
-        return "{verified}@{screen_name} ({name}): {text} ({timestamp})".format(**locals())
+        return u"{verified}@{screen_name} ({name}): {text} ({timestamp})".format(**locals())
 
     def get_tweet_id_from_url(url):
         mo = re.search(r'.*twitter.*status/([0-9]+)', url)
