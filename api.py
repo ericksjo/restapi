@@ -48,8 +48,6 @@ if credentials.has_section('twitter'):
         timeline_endpoint = "https://api.twitter.com/1.1/statuses/show.json?id={id}&tweet_mode=extended".format(id=id)
         try:
             response, data = client.request(timeline_endpoint)
-            with open('myfile.txt', 'w') as file:
-                file.write(data)
             tweet = json.loads(data)
         except Exception as e:
             return "ERROR: {0}".format(e)
