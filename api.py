@@ -99,7 +99,7 @@ if credentials.has_section('alphavantage'):
         else:
             return "Status code wasn't 200: %d" % resp.status_code
 
-        return data
+        return resp.text
 
 
 
