@@ -55,7 +55,7 @@ if credentials.has_section('twitter'):
             return "ERROR: {0}".format(e)
         text = tweet['full_text']
         name = tweet['user']['name']
-        verified = "" if tweet['user']['verified'] == False else "✓"
+        verified = u"" if tweet['user']['verified'] == False else u"√"
         screen_name = tweet['user']['screen_name']
         timestamp = tweet['created_at']
 
