@@ -5,3 +5,4 @@ HTMLParser
 requests
 w3lib
 six
+oauth2

@@ -9,6 +9,7 @@ import requests
 import re
 from credentials import *
 import MySQLdb
+import oauth2 as oauth
 
 app = Flask(__name__)
 
@@ -34,6 +35,75 @@ def title():
             return get_url_title(urllib2.unquote(url))
         else:
             return "No URL specified"
+if credentials.has_section('twitter'):
+    def get_tweet(id):
+        CONSUMER_KEY    = credentials.get('twitter', 'CONSUMER_KEY', None)
+        CONSUMER_SECRET = credentials.get('twitter', 'CONSUMER_SECRET', None)
+        ACCESS_KEY      = credentials.get('twitter', 'ACCESS_KEY', None)
+        ACCESS_SECRET   = credentials.get('twitter', 'ACCESS_SECRET', None)
+        consumer = oauth.Consumer(key=CONSUMER_KEY, secret=CONSUMER_SECRET)
+        access_token = oauth.Token(key=ACCESS_KEY, secret=ACCESS_SECRET)
+        client = oauth.Client(consumer, access_token)
+
+        timeline_endpoint = "https://api.twitter.com/1.1/statuses/show.json?id={id}".format(id=id)
+        try:
+            response, data = client.request(timeline_endpoint)
+            with open('test.json', 'w') as file:
+                file.write(data)
+            tweet = json.loads(data)
+        except Exception as e:
+            return "ERROR: {0}".format(e)
+        text = tweet['text']
+        name = tweet['user']['name']
+        verified = "" if tweet['user']['verified'] == False else "✓"
+        screen_name = tweet['user']['screen_name']
+        timestamp = tweet['created_at']
+
+        return "{verified}@{screen_name} ({name}): {text} ({timestamp})".format(**locals())
+
+    def get_tweet_id_from_url(url):
+        mo = re.search(r'.*twitter.*status/([0-9]+)', url)
+        if mo:
+            return mo.group(1)
+        else:
+            return None
+
+ 
+if credentials.has_section('alphavantage'):
+    @app.route("/stockquote", methods=['GET', 'POST'])
+    def stockquote():
+        """Returns a batch stock market quote for the given symbols"""
+
+        url = 'https://www.alphavantage.co/query?function=BATCH_STOCK_QUOTES&apikey={api_key}&symbols={symbols}'
+        apikey = credentials.get('alphavantage', 'apikey', None)
+        url_data = {}
+        url_data['api_key'] = apikey
+
+        if request.method == 'POST':
+            try:
+                json_data = request.get_json()
+            except:
+                return "Must post json data with symbol field"
+            symbol = json_data.get('symbol', None)
+        else:
+            symbol = request.args.get('symbol').split(',')
+
+        url_data['symbols'] = ','.join(symbol)
+
+        try:
+            resp = requests.get(url.format(**url_data), timeout=10)
+        except Exception as e:
+            return "Couldn't connect! {}".format(e)
+        if resp.status_code == 200:
+            data = json.loads(resp.text)
+        else:
+            return "Status code wasn't 200: %d" % resp.status_code
+
+        return data
+
+
+
+
 if credentials.has_section('omdb'):
     @app.route("/movie", methods=['GET', 'POST'])
     def movie():
@@ -60,7 +130,7 @@ if credentials.has_section('omdb'):
         else:
             url = '%s?apikey=%s&s=%s&r=json' % (omdb_url, apikey, urllib2.quote(title))
         try:
-            resp = requests.get(url, timeout=5)
+            resp = requests.get(url, timeout=10)
         except Exception as e:
             return "Couldn't connect to omdb: %s" % e
         if resp.status_code == 200:
@@ -142,6 +212,11 @@ def get_url_title(url):
     headers = {
         'User-Agent': """Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36"""
     }
+    # Twitter is stupid
+    if credentials.has_section('twitter'):
+        tweet_id = get_tweet_id_from_url(url)
+        if tweet_id:
+            return get_tweet(tweet_id) 
     try:
         response = requests.get(url, headers=headers, timeout=5, verify=False)
     except:
